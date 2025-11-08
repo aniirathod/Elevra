@@ -1,0 +1,149 @@
+# docker-compose.yml
+# - Only runtime env values come from the host/CI (no committed secretes).
+# - Each service exposes a single internal port; NGINX is the single public gateway.
+# - Healthchecks, restart policy, resource hints, and logging are included.
+# - Use an external secret store (preferred) or Docker secrets (optional).
+version: "3.9"
+
+x-defaults: &defaults
+  restart: always
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+  networks:
+    - backend
+
+services:
+  # -----------------------
+  # NGINX - single public entrypoint
+  # -----------------------
+  nginx:
+    build:
+      context: ./infra/nginx
+      dockerfile: Dockerfile
+    container_name: nginx_gateway
+    ports:
+      - "80:80" # HTTP (Render/host should terminate TLS at edge or you manage certs)
+    depends_on:
+      - auth-service
+      - resume-service
+      - ai-service
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    <<: *defaults
+
+  # -----------------------
+  # Auth service
+  # -----------------------
+  auth-service:
+    build:
+      context: ./apps/services/auth-service
+      dockerfile: Dockerfile
+    image: ${REGISTRY_AUTH_IMAGE:-auth-service:latest} # override in CI
+    container_name: auth_service
+    environment:
+      - NODE_ENV=production
+      - PORT=4001
+      - MONGO_URI=${MONGO_URI}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4001/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy: # deploy.* is only used in swarm; kept as hints for orchestration
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - backend
+    <<: *defaults
+
+  # -----------------------
+  # Resume service
+  # -----------------------
+  resume-service:
+    build:
+      context: ./apps/services/resume-service
+      dockerfile: Dockerfile
+    image: ${REGISTRY_RESUME_IMAGE:-resume-service:latest}
+    container_name: resume_service
+    environment:
+      - NODE_ENV=production
+      - PORT=4002
+      - MONGO_URI=${MONGO_URI}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4002/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - backend
+    <<: *defaults
+
+  # -----------------------
+  # AI service
+  # -----------------------
+  ai-service:
+    build:
+      context: ./apps/services/ai-service
+      dockerfile: Dockerfile
+    image: ${REGISTRY_AI_IMAGE:-ai-service:latest}
+    container_name: ai_service
+    environment:
+      - NODE_ENV=production
+      - PORT=4003
+      - MONGO_URI=${MONGO_URI}
+      - OPENAI_API_KEY=${OPENAI_API_KEY} # inject via host secrets
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:4003/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+    networks:
+      - backend
+    <<: *defaults
+
+# Optionally define shared volumes or secrets here (recommended: do not commit sensitive secret files)
+# Example of Docker secrets usage (host-specific; many managed hosts prefer their own secret manager):
+secrets:
+  jwt_secret:
+    external: true
+  mongo_uri:
+    external: true
+  openai_api_key:
+    external: true
+
+networks:
+  backend:
+    driver: bridge
