@@ -38,12 +38,16 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
 
-      # OpenAI API
-      - key: OPENAI_API_KEY
+      # Cerbrus
+      - key: CEREBRAS_API_KEY
         sync: false
 
-      # Gemini API (optional)
-      - key: GEMINI_API_KEY
+      # Cerebras model name
+      - key: CEREBRAS_MODEL_NAME
+        sync: false
+
+      # AI Provider
+      - key: AI_PROVIDER
         sync: false
 
       # Frontend URL for CORS
