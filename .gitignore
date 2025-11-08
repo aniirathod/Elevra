@@ -36,3 +36,9 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+
+# Ignore MongoDB container data
+infra/docker/mongo-data/
+infra/docker/mongo-data/*
+*.log

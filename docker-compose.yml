@@ -116,7 +116,6 @@ services:
       - NODE_ENV=production
       - PORT=4003
       - MONGO_URI=${MONGO_URI}
-      - OPENAI_API_KEY=${OPENAI_API_KEY} # inject via host secrets
       - LOG_LEVEL=info
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:4003/health || exit 1"]
@@ -140,7 +139,7 @@ secrets:
     external: true
   mongo_uri:
     external: true
-  openai_api_key:
+  cerebras_api_key:
     external: true
 
 networks:
