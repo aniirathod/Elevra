@@ -3,7 +3,6 @@
 # - Each service exposes a single internal port; NGINX is the single public gateway.
 # - Healthchecks, restart policy, resource hints, and logging are included.
 # - Use an external secret store (preferred) or Docker secrets (optional).
-version: "3.9"
 
 x-defaults: &defaults
   restart: always
