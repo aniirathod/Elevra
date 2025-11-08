@@ -1,0 +1,51 @@
+# render.yaml
+services:
+  # Backend - All microservices in one container
+  - type: web
+    name: resume-ai-backend
+    env: docker
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+
+    # Instance configuration
+    plan: free # free, starter ($7/mo), standard ($25/mo)
+    region: oregon # oregon, frankfurt, singapore
+
+    # Runtime
+    healthCheckPath: /health
+
+    # Auto-deploy on push
+    autoDeploy: true
+    branch: main
+
+    # Environment variables
+    envVars:
+      # Node environment
+      - key: NODE_ENV
+        value: production
+
+      - key: LOG_LEVEL
+        value: info
+
+      # MongoDB connection
+      - key: MONGO_URI
+        sync: false
+
+      # JWT secrets
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+
+      # OpenAI API
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # Gemini API (optional)
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Frontend URL for CORS
+      - key: FRONTEND_URL
+        value: https://yourapp.vercel.app
