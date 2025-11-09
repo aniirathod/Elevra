@@ -31,7 +31,8 @@ services:
   - type: web
     name: auth-service
     env: docker
-    dockerfilePath: ./services/auth/Dockerfile
+    dockerfilePath: ./apps/services/auth-service/Dockerfile
+    dockerContext: ./apps/services/auth-service
     plan: free
     autoDeploy: true
     envVars:
@@ -46,7 +47,8 @@ services:
   - type: web
     name: resume-service
     env: docker
-    dockerfilePath: ./services/resume/Dockerfile
+    dockerfilePath: ./apps/services/resume-service/Dockerfile
+    dockerContext: ./apps/services/resume-service
     plan: free
     autoDeploy: true
     envVars:
@@ -61,7 +63,8 @@ services:
   - type: web
     name: ai-service
     env: docker
-    dockerfilePath: ./services/ai/Dockerfile
+    dockerfilePath: ./apps/services/ai-service/Dockerfile
+    dockerContext: ./apps/services/ai-service
     plan: free
     autoDeploy: true
     envVars:
