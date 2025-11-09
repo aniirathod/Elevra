@@ -5,7 +5,7 @@ services:
     dockerfilePath: ./infra/nginx/Dockerfile
     plan: free
     autoDeploy: true
-    contextPath: ./infra/nginx
+    dockerContext: ./infra/nginx
     envVars:
       - key: NODE_ENV
         value: production
