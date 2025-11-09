@@ -1,55 +1,73 @@
-# render.yaml
 services:
-  # Backend - All microservices in one container
+  # ==========================================================
+  # NGINX Gateway (single backend URL)
+  # ==========================================================
   - type: web
-    name: resume-ai-backend
+    name: elevra-backend
     env: docker
-    dockerfilePath: ./Dockerfile.render
-    dockerContext: .
-
-    # Instance configuration
-    plan: free # free, starter ($7/mo), standard ($25/mo)
-    region: oregon # oregon, frankfurt, singapore
-
-    # Runtime
-    healthCheckPath: /health
-
-    # Auto-deploy on push
+    dockerfilePath: ./infra/nginx/Dockerfile
+    plan: starter
     autoDeploy: true
-    branch: main
-
-    # Environment variables
     envVars:
-      # Node environment
       - key: NODE_ENV
         value: production
+      - key: AUTH_SERVICE_HOST
+        fromService:
+          type: web
+          name: auth-service
+          property: host
+      - key: RESUME_SERVICE_HOST
+        fromService:
+          type: web
+          name: resume-service
+          property: host
+      - key: AI_SERVICE_HOST
+        fromService:
+          type: web
+          name: ai-service
+          property: host
 
-      - key: LOG_LEVEL
-        value: info
+  # ==========================================================
+  # AUTH Service
+  # ==========================================================
+  - type: web
+    name: auth-service
+    env: docker
+    dockerfilePath: ./services/auth/Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4001
 
-      # MongoDB connection
-      - key: MONGO_URI
-        sync: false
+  # ==========================================================
+  # RESUME Service
+  # ==========================================================
+  - type: web
+    name: resume-service
+    env: docker
+    dockerfilePath: ./services/resume/Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4002
 
-      # JWT secrets
-      - key: JWT_ACCESS_SECRET
-        generateValue: true
-
-      - key: JWT_REFRESH_SECRET
-        generateValue: true
-
-      # Cerbrus
-      - key: CEREBRAS_API_KEY
-        sync: false
-
-      # Cerebras model name
-      - key: CEREBRAS_MODEL_NAME
-        sync: false
-
-      # AI Provider
-      - key: AI_PROVIDER
-        sync: false
-
-      # Frontend URL for CORS
-      - key: FRONTEND_URL
-        value: https://yourapp.vercel.app
+  # ==========================================================
+  # AI Service
+  # ==========================================================
+  - type: web
+    name: ai-service
+    env: docker
+    dockerfilePath: ./services/ai/Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4003
