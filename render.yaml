@@ -1,7 +1,4 @@
 services:
-  # ==========================================================
-  # NGINX Gateway (single backend URL)
-  # ==========================================================
   - type: web
     name: elevra-backend
     env: docker

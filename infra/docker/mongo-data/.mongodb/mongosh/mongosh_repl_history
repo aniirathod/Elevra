@@ -1,9 +1,0 @@
-db.users.find().pretty()
-show collections
-show dbs
-exit
-mongosh ;"mongodb://admin:password@127.0.0.1:27017"
-mongosh "mongodb://admin:password@127.0.0.1:27017";
-mongosh "mongodb://admin:password@127.0.0.1:27017"
-mongosh "mongodb://admin:secret@127.0.0.1:27017"
-show dbs
