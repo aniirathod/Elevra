@@ -11,24 +11,24 @@ services:
         value: production
       - key: AUTH_SERVICE_HOST
         fromService:
-          type: web
+          type: pserv
           name: auth-service
           property: host
       - key: RESUME_SERVICE_HOST
         fromService:
-          type: web
+          type: pserv
           name: resume-service
           property: host
       - key: AI_SERVICE_HOST
         fromService:
-          type: web
+          type: pserv
           name: ai-service
           property: host
 
   # ==========================================================
   # AUTH Service
   # ==========================================================
-  - type: web
+  - type: pserv
     name: auth-service
     env: docker
     dockerfilePath: ./apps/services/auth-service/Dockerfile
@@ -44,7 +44,7 @@ services:
   # ==========================================================
   # RESUME Service
   # ==========================================================
-  - type: web
+  - type: pserv
     name: resume-service
     env: docker
     dockerfilePath: ./apps/services/resume-service/Dockerfile
@@ -60,7 +60,7 @@ services:
   # ==========================================================
   # AI Service
   # ==========================================================
-  - type: web
+  - type: pserv
     name: ai-service
     env: docker
     dockerfilePath: ./apps/services/ai-service/Dockerfile
