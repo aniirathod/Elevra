@@ -6,7 +6,7 @@ echo "🚀 Starting Resume AI Platform Backend"
 echo "========================================"
 
 # Validate required environment variables
-required_vars="MONGO_URI JWT_ACCESS_SECRET JWT_REFRESH_SECRET OPENAI_API_KEY"
+required_vars="MONGO_URI JWT_ACCESS_SECRET JWT_REFRESH_SECRET CEREBRAS_API_KEY AI_PROVIDER CEREBRAS_MODEL_NAME"
 for var in $required_vars; do
   if [ -z "$(eval echo \$$var)" ]; then
     echo "❌ ERROR: Required environment variable $var is not set"
