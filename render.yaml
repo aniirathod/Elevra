@@ -6,7 +6,7 @@ services:
     name: elevra-backend
     env: docker
     dockerfilePath: ./infra/nginx/Dockerfile
-    plan: starter
+    plan: free
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -34,7 +34,7 @@ services:
     name: auth-service
     env: docker
     dockerfilePath: ./services/auth/Dockerfile
-    plan: starter
+    plan: free
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -49,7 +49,7 @@ services:
     name: resume-service
     env: docker
     dockerfilePath: ./services/resume/Dockerfile
-    plan: starter
+    plan: free
     autoDeploy: true
     envVars:
       - key: NODE_ENV
@@ -64,7 +64,7 @@ services:
     name: ai-service
     env: docker
     dockerfilePath: ./services/ai/Dockerfile
-    plan: starter
+    plan: free
     autoDeploy: true
     envVars:
       - key: NODE_ENV
