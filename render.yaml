@@ -9,17 +9,17 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: AUTH_SERVICE_HOST
+      - key: auth_service_host
         fromService:
           type: pserv
           name: auth-service
           property: host
-      - key: RESUME_SERVICE_HOST
+      - key: resume_service_host
         fromService:
           type: pserv
           name: resume-service
           property: host
-      - key: AI_SERVICE_HOST
+      - key: ai_service_host
         fromService:
           type: pserv
           name: ai-service
