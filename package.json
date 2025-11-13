@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "Elevra- AI assitant carrer guide",
   "private": true,
   "scripts": {
     "build": "turbo run build",
