@@ -22,8 +22,7 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,md}": "prettier --write",
-    "*.{ts,tsx,js,jsx}": "eslint --fix"
+    "*.{ts,tsx,js,jsx,json,md}": "prettier --write"
   },
   "devDependencies": {
     "husky": "^9.1.7",

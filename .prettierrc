@@ -8,6 +8,5 @@
   "arrowParens": "always",
   "endOfLine": "lf",
   "bracketSpacing": true,
-  "bracketSameLine": false,
-  "plugins": []
+  "bracketSameLine": false
 }

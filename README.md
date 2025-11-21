@@ -45,7 +45,7 @@ elevra/
 
 ### Installation
 
-1.                                             **Clone the repository**
+1.**Clone the repository**
 
     ```bash
     git clone <repository-url>
@@ -565,3 +565,5 @@ MIT License - see LICENSE file for details
 ---
 
 **Built with ❤️**
+test
+test
