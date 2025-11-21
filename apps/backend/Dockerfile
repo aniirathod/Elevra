@@ -1,57 +1,58 @@
-# Stage 1: Dependencies
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat openssl
+# STAGE 1: PRUNE
+FROM node:20-alpine AS pruner
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY turbo.json ./
-COPY apps/backend/package*.json ./apps/backend/
-COPY packages/utils/package*.json ./packages/utils/
-
-# Install dependencies
-RUN npm ci --omit=dev
-
-# Stage 2: Builder
-FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat openssl
-WORKDIR /app
-
-# Copy dependencies and source
-COPY --from=deps /app/node_modules ./node_modules
+RUN npm install -g turbo
 COPY . .
 
-# Generate Prisma client
-# RUN cd apps/backend && npx prisma generate
+RUN turbo prune --scope=@elevra/backend --docker
 
-# Build application
-ENV NODE_ENV production
-RUN npm run build:backend
-
-# Stage 3: Runner
-FROM node:20-alpine AS runner
-RUN apk add --no-cache openssl
+# STAGE 2: DEV & INSTALLER
+# This stage installs all deps (dev + prod) and is used for local development
+FROM node:20-alpine AS dev
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Copy lockfile and package.json from the prune stage
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/package-lock.json ./
+
+# Install ALL dependencies (needed for NestJS build & hot reload)
+RUN npm install
+
+# Copy source code
+COPY --from=pruner /app/out/full/ .
+
+# Generate Prisma Client (if you use Prisma)
+# RUN npx prisma generate
+
+# STAGE 3: BUILDER
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=dev /app/ .
+ENV NODE_ENV production
+RUN npm run build --filter=backend
+
+# STAGE 4: PROD RUNNER
+FROM node:20-alpine AS runner
+WORKDIR /app
 ENV NODE_ENV production
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nestjs
+# Don't run as root
+RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nestjs
-
-# Copy built application
-COPY --from=builder --chown=nestjs:nestjs /app/apps/backend/dist ./dist
-COPY --from=builder --chown=nestjs:nestjs /app/node_modules ./node_modules
-COPY --from=builder --chown=nestjs:nestjs /app/apps/backend/package.json ./package.json
-# COPY --from=builder --chown=nestjs:nestjs /app/apps/backend/prisma ./prisma
-
 USER nestjs
+
+# Copy the built app
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/dist ./dist
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nodejs /app/apps/backend/package.json ./package.json
 
 EXPOSE 4000
 ENV PORT 4000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# Node-based Healthcheck (No curl needed)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:4000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 CMD ["node", "dist/main.js"]

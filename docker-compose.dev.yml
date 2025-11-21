@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/backend/Dockerfile
-      target: development
+      target: dev
     container_name: elevra-backend-dev
     restart: unless-stopped
     command: npm run dev:backend
@@ -40,7 +40,7 @@ services:
       - '4000:4000'
     volumes:
       - ./apps/backend/src:/app/apps/backend/src
-      - ./apps/backend/prisma:/app/apps/backend/prisma
+      # - ./apps/backend/prisma:/app/apps/backend/prisma
       - ./packages:/app/packages
       - backend-node-modules:/app/node_modules
       - backend-app-node-modules:/app/apps/backend/node_modules
@@ -51,9 +51,9 @@ services:
       - elevra-dev
 
 volumes:
-  # postgres-dev-data:
-  # backend-node-modules:
-  # backend-app-node-modules:
+  postgres-dev-data:
+  backend-node-modules:
+  backend-app-node-modules:
 
 networks:
   elevra-dev:
