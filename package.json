@@ -18,9 +18,16 @@
     "docker:prod": "docker compose -f docker-compose.prod.yml up --build -d",
     "docker:down": "docker compose down --volumes --remove-orphans",
     "deploy": "bash scripts/deploy.sh",
-    "health-check": "bash scripts/health-check.sh"
+    "health-check": "bash scripts/health-check.sh",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md}": "prettier --write",
+    "*.{ts,tsx,js,jsx}": "eslint --fix"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.6.2",
     "turbo": "^2.6.1",
     "typescript": "5.9.2"

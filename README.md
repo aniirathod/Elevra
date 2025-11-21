@@ -8,6 +8,7 @@ A fully containerized, production-grade monorepo featuring Next.js 15, Nest.js 1
 ## 🏗️ Architecture
 
 ### Tech Stack
+
 - **Frontend**: Next.js 15, React 18, TailwindCSS, TypeScript
 - **Backend**: Nest.js 10, Prisma ORM, PostgreSQL
 - **Monorepo**: Turborepo, npm workspaces
@@ -44,32 +45,36 @@ elevra/
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd elevra
-   ```
+1.                                             **Clone the repository**
 
-2. **Run setup script**
-   ```bash
-   chmod +x scripts/setup.sh
-   ./scripts/setup.sh
-   ```
+    ```bash
+    git clone <repository-url>
+    cd elevra
+    ```
 
-3. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+2.  **Run setup script**
 
-4. **Start development**
-   ```bash
-   # Option 1: Local development
-   npm run dev
+    ```bash
+    chmod +x scripts/setup.sh
+    ./scripts/setup.sh
+    ```
 
-   # Option 2: Docker development
-   npm run docker:dev
-   ```
+3.  **Configure environment variables**
+
+    ```bash
+    cp .env.example .env
+    # Edit .env with your configuration
+    ```
+
+4.  **Start development**
+
+    ```bash
+    # Option 1: Local development
+    npm run dev
+
+    # Option 2: Docker development
+    npm run docker:dev
+    ```
 
 ## 💻 Development
 
@@ -98,6 +103,7 @@ npm run format
 ```
 
 **Services will be available at:**
+
 - Frontend: http://localhost:3000
 - Backend: http://localhost:4000
 
@@ -105,7 +111,7 @@ npm run format
 
 ```bash
 # Start all services with hot reload only backend
-npm run docker:dev 
+npm run docker:dev
 
 # View logs
 docker compose logs -f
@@ -118,6 +124,7 @@ docker compose -f docker-compose.dev.yml up --build
 ```
 
 **Services available at:**
+
 - Frontend: http://localhost:3000
 - Backend: http://localhost:4000
 - PostgreSQL: localhost:5432
@@ -194,9 +201,9 @@ chmod +x scripts/deploy.sh
 ### Automated Deployment (GitHub Actions)
 
 1. **Configure GitHub Secrets**
-   
+
    Navigate to: `Settings → Secrets and variables → Actions`
-   
+
    Add the following secrets:
    - `DEPLOY_HOST`: Your production server IP/domain
    - `DEPLOY_USER`: SSH username
@@ -204,17 +211,17 @@ chmod +x scripts/deploy.sh
    - `PRODUCTION_URL`: Your production URL (for health checks)
 
 2. **Push to main branch**
+
    ```bash
    git push origin main
    ```
-   
+
    This will automatically:
    - Run CI checks (lint, type-check, build, test)
    - Build Docker images
    - Push to GitHub Container Registry
    - Deploy to production server
    - Run health checks
-
 
 ### Post-Deployment
 
@@ -250,6 +257,7 @@ npm run test:watch --workspace=@elevra/backend
 ### ESLint Configuration
 
 The project uses a strict ESLint configuration with:
+
 - TypeScript recommended rules
 - Strict type checking
 - No explicit `any` types
@@ -278,6 +286,7 @@ npm run format
 ### Pre-commit Hooks
 
 Git hooks are automatically set up to:
+
 - Run linter and fix issues
 - Format code with Prettier
 - Ensure code quality before commits
@@ -293,7 +302,6 @@ The `turbo.json` defines task dependencies and caching:
 - **lint**: Can run in parallel
 - **type-check**: Validates TypeScript types
 - **test**: Runs after build, caches coverage
-
 
 ### Adding New Packages
 
@@ -329,11 +337,13 @@ npm install @elevra/new-package@*
 ### Multi-stage Builds
 
 All Dockerfiles use multi-stage builds for:
+
 - **deps**: Install production dependencies
 - **builder**: Build the application
 - **runner**: Minimal runtime image
 
 Benefits:
+
 - Smaller image sizes
 - Faster builds with layer caching
 - Secure production images (no dev dependencies)
@@ -341,12 +351,14 @@ Benefits:
 ### Development vs Production
 
 **Development** (`docker-compose.dev.yml`):
+
 - Hot reload with volume mounts
 - Source code mounted for instant updates
 - Exposed ports for debugging
 - Development environment variables
 
 **Production** (`docker-compose.prod.yml`):
+
 - Optimized production builds
 - No volume mounts (immutable containers)
 - Nginx reverse proxy
@@ -358,6 +370,7 @@ Benefits:
 This monorepo follows security best practices:
 
 ### Application Security
+
 - ✅ No `any` types in TypeScript
 - ✅ Strict TypeScript configuration
 - ✅ Input validation with class-validator
@@ -367,6 +380,7 @@ This monorepo follows security best practices:
 - ✅ Environment variable validation
 
 ### Container Security
+
 - ✅ Non-root user in containers
 - ✅ Multi-stage builds
 - ✅ Minimal base images (Alpine)
@@ -374,6 +388,7 @@ This monorepo follows security best practices:
 - ✅ Health checks enabled
 
 ### Production Checklist
+
 - [ ] Update all default passwords
 - [ ] Generate strong JWT_SECRET (min 32 chars)
 - [ ] Configure SSL certificates
@@ -415,6 +430,7 @@ curl http://localhost:3000
 ### Log Levels
 
 Configure via `LOG_LEVEL` environment variable:
+
 - `debug`: All logs
 - `info`: Info, warnings, errors
 - `warn`: Warnings and errors
@@ -431,7 +447,7 @@ lsof -i :4000
 lsof -i :5432
 
 # Kill process
-kill -9 
+kill -9
 ```
 
 ### Docker Issues
@@ -507,6 +523,7 @@ test: add unit tests for utils
 ## 📚 Additional Resources
 
 ### Documentation Links
+
 - [Turborepo Documentation](https://turbo.build/repo/docs)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Nest.js Documentation](https://docs.nestjs.com)
