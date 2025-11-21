@@ -1,12 +1,24 @@
 {
-  "name": "Elevra- AI assitant carrer guide",
+  "name": "elevra",
   "private": true,
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "build:frontend": "turbo run build --filter=@elevra/frontend",
+    "build:backend": "turbo run build --filter=@elevra/backend",
+    "dev:frontend": "turbo run dev --filter=@elevra/frontend",
+    "dev:backend": "turbo run dev --filter=@elevra/backend",
     "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "docker:dev": "docker compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker compose -f docker-compose.prod.yml up --build -d",
+    "docker:down": "docker compose down --volumes --remove-orphans",
+    "deploy": "bash scripts/deploy.sh",
+    "health-check": "bash scripts/health-check.sh"
   },
   "devDependencies": {
     "prettier": "^3.6.2",

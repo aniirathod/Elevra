@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: #1a1919;
+  --color-foreground: #ffffff;
+  --color-surface: #383838;
+  --color-secondary: #e37616;
+  --color-background-part-one: #2e2116;
+  --color-primary: #1f1e1d;
+  --color-card-background: #1e1e1e;
+  --color-faint-text: #8a8a8a;
+
+  --selected-text-background: #e37616;
+  --selected-text-foreground: #ffffff;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --breakpoint-xm: 20rem;
+  --breakpoint-xs: 23.44rem;
+  --breakpoint-l: 32.8125rem;
+
+  --animate-shine: shine var(--duration) infinite linear;
+  --animate-glow: glow 5s infinite linear;
+
+  @keyframes shine {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    to {
+      background-position: 0% 0%;
+    }
+  }
+
+  @keyframes glow {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    to {
+      background-position: 0% 0%;
+    }
+  }
+}
+
+::selection {
+  background-color: var(--selected-text-background);
+  color: var(--selected-text-foreground);
+}
+
+::-moz-selection {
+  background-color: var(--selected-text-background);
+  color: var(--selected-text-foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+}
+
+html,
+body {
+  @apply bg-background text-foreground;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    font-size: clamp(0.1rem, -0.0817rem + 1.4532vw, 9rem);
+  }
+}
