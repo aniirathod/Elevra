@@ -1,0 +1,30 @@
+# DEV IMAGE — optimized for hot reload
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install deps needed during development
+RUN apk add --no-cache libc6-compat
+
+# Install Turbo globally (dev convenience)
+RUN npm install -g turbo
+
+# Copy monorepo root package.json + lockfile
+COPY package.json package-lock.json ./
+
+# Copy backend package.json so turbo can resolve workspace
+COPY apps/backend/package.json ./apps/backend/
+
+# Install root dependencies ONCE
+RUN npm install
+
+# Copy monorepo structure (without all sources)
+COPY turbo.json ./
+COPY packages ./packages
+COPY apps/backend ./apps/backend
+
+# Expose API port
+EXPOSE 4000
+
+# Run dev server via turbo filter
+CMD ["npm" , "run" , "dev:backend"]

@@ -19,13 +19,32 @@ services:
     networks:
       - elevra-dev
 
+  frontend:
+    build:
+      context: .
+      dockerfile: ./apps/frontend/Dockerfile.dev
+    container_name: elevra-frontend-dev
+    # restart: unless-stopped
+    command: npm run dev:frontend
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - elevra-dev
+
+
   backend:
     build:
       context: .
-      dockerfile: ./apps/backend/Dockerfile
-      target: dev
+      dockerfile: ./apps/backend/Dockerfile.dev
     container_name: elevra-backend-dev
-    restart: unless-stopped
+    # restart: unless-stopped
     command: npm run dev:backend
     environment:
       # DATABASE_URL: postgresql://dev:devpass@postgres:5432/elevra_dev
@@ -42,8 +61,8 @@ services:
       - ./apps/backend/src:/app/apps/backend/src
       # - ./apps/backend/prisma:/app/apps/backend/prisma
       - ./packages:/app/packages
-      - backend-node-modules:/app/node_modules
-      - backend-app-node-modules:/app/apps/backend/node_modules
+      - /app/node_modules
+      - /app/apps/backend/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,8 +71,6 @@ services:
 
 volumes:
   postgres-dev-data:
-  backend-node-modules:
-  backend-app-node-modules:
 
 networks:
   elevra-dev:
