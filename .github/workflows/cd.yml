@@ -6,7 +6,13 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: CHANGE DETECTION (The Brain — stable & deterministic)
+  # ------------------------------------------------------------------
   check-changes:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -15,51 +21,58 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
 
     steps:
-      - name: Checkout repo with full history
+      - name: Checkout repo (full history)
         uses: actions/checkout@v4
         with:
+          # HEAD commit that passed CI
           ref: ${{ github.event.workflow_run.head_sha }}
+          # full history ensures diff operations and merge-bases work
           fetch-depth: 0
 
-      - name: Fetch main for diff
-        run: git fetch origin main
+      - name: Ensure main is available for comparison
+        run: |
+          # Fetch remote main so origin/main exists locally
+          git fetch origin main --no-tags --prune
 
       - name: Filter changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          # Compare the CI-tested commit (ref) against the real baseline (origin/main)
           base: origin/main
-          head: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
           filters: |
             frontend:
-              - "apps/frontend/**"
-              - "packages/**"
-
+              - 'apps/frontend/**'
+              - 'packages/**'
             backend:
-              - "apps/backend/**"
-              - "packages/**"
+              - 'apps/backend/**'
+              - 'packages/**'
 
+  # ------------------------------------------------------------------
+  # JOB 2: DEPLOY FRONTEND (only when frontend files changed)
+  # ------------------------------------------------------------------
   deploy-frontend:
     needs: check-changes
     if: ${{ needs.check-changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Vercel Pull
+      - name: Pull Vercel env
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Build
+      - name: Build (disable husky if needed)
         run: HUSKY=0 vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -71,16 +84,19 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+  # ------------------------------------------------------------------
+  # JOB 3: DEPLOY BACKEND (only when backend files changed)
+  # ------------------------------------------------------------------
   deploy-backend:
     needs: check-changes
     if: ${{ needs.check-changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
