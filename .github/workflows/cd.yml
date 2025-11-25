@@ -18,47 +18,45 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
-      frontend: ${{ steps.filter.outputs.frontend }}
-      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.changes.outputs.frontend }}
+      backend: ${{ steps.changes.outputs.backend }}
       commit_sha: ${{ github.event.workflow_run.head_sha }}
 
     steps:
-      - name: Checkout CI commit
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
-      - name: Configure git
+      - name: Get changed files
+        id: changes
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git remote set-url origin https://github.com/${{ github.repository }}.git
-
-      - name: Fetch main branch
-        run: |
-          git fetch origin +refs/heads/main:refs/remotes/origin/main --depth=100
-
-      - name: Detect changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          base: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_branch || 'origin/main' }}
-          ref: ${{ github.event.workflow_run.head_sha }}
-          list-files: shell
-          filters: |
-            frontend:
-              - "apps/frontend/**"
-              - "apps/web/**"
-              - "packages/**"
-            backend:
-              - "apps/backend/**"
-              - "packages/**"
-
-      - name: Log detected changes
-        run: |
-          echo "Frontend changed: ${{ steps.filter.outputs.frontend }}"
-          echo "Backend changed: ${{ steps.filter.outputs.backend }}"
-          echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
+          # Fetch the specific commit that was tested in CI
+          git fetch origin ${{ github.event.workflow_run.head_sha }}
+          
+          # Compare against the previous commit to detect changes
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check if frontend changed
+          if echo "$CHANGED_FILES" | grep -qE '^(apps/frontend/|apps/web/|packages/)'; then
+            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "✅ Frontend changes detected"
+          else
+            echo "frontend=false" >> $GITHUB_OUTPUT
+            echo "⏭️ No frontend changes"
+          fi
+          
+          # Check if backend changed
+          if echo "$CHANGED_FILES" | grep -qE '^(apps/backend/|packages/)'; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "✅ Backend changes detected"
+          else
+            echo "backend=false" >> $GITHUB_OUTPUT
+            echo "⏭️ No backend changes"
+          fi
 
   # --------------------------------------------------------------
   # JOB 2: DEPLOY FRONTEND (Vercel)
@@ -72,11 +70,10 @@ jobs:
       name: production-frontend
 
     steps:
-      - name: Checkout CI commit
+      - name: Checkout tested commit
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.check-changes.outputs.commit_sha }}
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -108,18 +105,6 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Comment deployment URL
-        if: github.event.workflow_run.event == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚀 Frontend deployed to: ${{ steps.deploy.outputs.url }}'
-            })
-
   # --------------------------------------------------------------
   # JOB 3: DEPLOY BACKEND (Railway)
   # --------------------------------------------------------------
@@ -132,11 +117,10 @@ jobs:
       name: production-backend
 
     steps:
-      - name: Checkout CI commit
+      - name: Checkout tested commit
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.check-changes.outputs.commit_sha }}
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -149,13 +133,13 @@ jobs:
       - name: Deploy to Railway
         run: |
           railway up --service Elevra --detach
-          echo "✅ Backend deployed successfully to Railway"
+          echo "✅ Backend deployed successfully"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Wait for deployment
         run: |
-          echo "Waiting 30s for Railway deployment to stabilize..."
+          echo "Waiting 30s for deployment to stabilize..."
           sleep 30
 
   # --------------------------------------------------------------
