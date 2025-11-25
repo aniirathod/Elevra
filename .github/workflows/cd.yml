@@ -2,24 +2,55 @@ name: CD Pipeline
 
 on:
   workflow_run:
-    workflows: ["CI Pipeline"] 
+    workflows: ["CI Pipeline"]
     types: [completed]
     branches: [main]
 
 jobs:
-  deploy-production:
+  # ------------------------------------------------------------------
+  # JOB 1: CHANGE DETECTION (The Brain)
+  # This job figures out WHICH folders changed in the commit.
+  # ------------------------------------------------------------------
+  check-changes:
+    # Only run if CI passed
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - name: Filter Paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'apps/frontend/**'
+              - 'packages/**'  
+            backend:
+              - 'apps/backend/**'
+              - 'packages/**'
+
+  # ------------------------------------------------------------------
+  # JOB 2: DEPLOY FRONTEND (VERCEL)
+  # Only runs if 'frontend' or 'packages' changed
+  # ------------------------------------------------------------------
+  deploy-frontend:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Checkout the exact commit that passed the tests
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      # ---------------------------
-      # 1. DEPLOY FRONTEND (VERCEL)
-      # ---------------------------
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
@@ -30,7 +61,8 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        # We set HUSKY=0 to prevent the crash you saw earlier
+        run: HUSKY=0 vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -41,9 +73,20 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      # ---------------------------
-      # 2. DEPLOY BACKEND (RAILWAY)
-      # ---------------------------
+  # ------------------------------------------------------------------
+  # JOB 3: DEPLOY BACKEND (RAILWAY)
+  # Only runs if 'backend' or 'packages' changed
+  # ------------------------------------------------------------------
+  deploy-backend:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
