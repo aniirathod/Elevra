@@ -19,7 +19,7 @@
     "docker:down": "docker compose down --volumes --remove-orphans",
     "deploy": "bash scripts/deploy.sh",
     "health-check": "bash scripts/health-check.sh",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,md}": "prettier --write"
