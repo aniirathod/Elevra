@@ -11,45 +11,40 @@ permissions:
 
 jobs:
   # --------------------------------------------------------------
-  # JOB 1: CHANGE DETECTION (stable + correct)
+  # JOB 1: CHANGE DETECTION
   # --------------------------------------------------------------
   check-changes:
+    name: Detect Changes
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
+      commit_sha: ${{ github.event.workflow_run.head_sha }}
 
     steps:
-      # 1️⃣ Checkout the commit CI tested
       - name: Checkout CI commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0    # full history so git diff works
+          fetch-depth: 0
 
-      # 2️⃣ Ensure remote is correct
-      - name: Fix remote URL
+      - name: Configure git
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git remote set-url origin https://github.com/${{ github.repository }}.git
 
-      # 3️⃣ Fetch ALL remote branches (required for workflow_run)
-      - name: Fetch all branch refs
+      - name: Fetch main branch
         run: |
-          git fetch origin --prune --no-tags --depth=1000
+          git fetch origin +refs/heads/main:refs/remotes/origin/main --depth=100
 
-      # 4️⃣ Explicitly fetch origin/main so it exists locally
-      - name: Ensure origin/main exists
-        run: |
-          git fetch origin +refs/heads/main:refs/remotes/origin/main
-
-      # 5️⃣ Run the change detector
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
-          base: origin/main                 # production baseline
-          ref: ${{ github.event.workflow_run.head_sha }}   # CI commit
+          base: ${{ github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_branch || 'origin/main' }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          list-files: shell
           filters: |
             frontend:
               - "apps/frontend/**"
@@ -59,25 +54,39 @@ jobs:
               - "apps/backend/**"
               - "packages/**"
 
+      - name: Log detected changes
+        run: |
+          echo "Frontend changed: ${{ steps.filter.outputs.frontend }}"
+          echo "Backend changed: ${{ steps.filter.outputs.backend }}"
+          echo "Commit SHA: ${{ github.event.workflow_run.head_sha }}"
+
   # --------------------------------------------------------------
   # JOB 2: DEPLOY FRONTEND (Vercel)
   # --------------------------------------------------------------
   deploy-frontend:
+    name: Deploy Frontend to Vercel
     needs: check-changes
     if: ${{ needs.check-changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
+    environment:
+      name: production-frontend
 
     steps:
       - name: Checkout CI commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.check-changes.outputs.commit_sha }}
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Pull Vercel env
+      - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -89,31 +98,91 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Deploy frontend
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy to production
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "✅ Frontend deployed to: $URL"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Comment deployment URL
+        if: github.event.workflow_run.event == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Frontend deployed to: ${{ steps.deploy.outputs.url }}'
+            })
 
   # --------------------------------------------------------------
   # JOB 3: DEPLOY BACKEND (Railway)
   # --------------------------------------------------------------
   deploy-backend:
+    name: Deploy Backend to Railway
     needs: check-changes
     if: ${{ needs.check-changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
+    environment:
+      name: production-backend
 
     steps:
       - name: Checkout CI commit
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ needs.check-changes.outputs.commit_sha }}
           fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy backend
-        run: railway up --service Elevra --detach
+      - name: Deploy to Railway
+        run: |
+          railway up --service Elevra --detach
+          echo "✅ Backend deployed successfully to Railway"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Wait for deployment
+        run: |
+          echo "Waiting 30s for Railway deployment to stabilize..."
+          sleep 30
+
+  # --------------------------------------------------------------
+  # JOB 4: DEPLOYMENT SUMMARY
+  # --------------------------------------------------------------
+  deployment-summary:
+    name: Deployment Summary
+    needs: [check-changes, deploy-frontend, deploy-backend]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: \`${{ needs.check-changes.outputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Changed | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ${{ needs.check-changes.outputs.frontend }} | ${{ needs.deploy-frontend.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ needs.check-changes.outputs.backend }} | ${{ needs.deploy-backend.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check for failures
+        if: |
+          needs.deploy-frontend.result == 'failure' || 
+          needs.deploy-backend.result == 'failure'
+        run: |
+          echo "❌ One or more deployments failed"
+          exit 1
