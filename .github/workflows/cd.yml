@@ -6,7 +6,13 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
+  # --------------------------------------------------------------
+  # JOB 1: CHANGE DETECTION (correct, stable, production-ready)
+  # --------------------------------------------------------------
   check-changes:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
@@ -15,80 +21,89 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout (detached CI-tested SHA)
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-          # We need depth 2 to compare against the previous commit
-          fetch-depth: 2
+          fetch-depth: 0
 
-      - name: Filter changed paths
+      - name: Fetch remote main (fixes origin/main missing issue)
+        run: |
+          git remote set-url origin https://github.com/${{ github.repository }}.git
+          # Fetch the real main branch ref so paths-filter can compare
+          git fetch origin +refs/heads/main:refs/remotes/origin/main
+
+      - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
-          # CRITICAL FIX: Compare against the PARENT commit (HEAD~1)
-          # 'origin/main' would compare the commit against itself (returning 0 changes)
-          base: HEAD~1
+          # Correct comparison: production baseline vs CI commit
+          base: origin/main
+          ref: ${{ github.event.workflow_run.head_sha }}
           filters: |
             frontend:
-              - 'apps/frontend/**'
-              - 'apps/web/**'
-              - 'packages/**'
+              - "apps/frontend/**"
+              - "apps/web/**"
+              - "packages/**"
             backend:
-              - 'apps/backend/**'
-              - 'packages/**'
+              - "apps/backend/**"
+              - "packages/**"
 
+  # --------------------------------------------------------------
+  # JOB 2: DEPLOY FRONTEND (Vercel)
+  # --------------------------------------------------------------
   deploy-frontend:
     needs: check-changes
-    # Only run if frontend files changed
     if: ${{ needs.check-changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout deployment commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Vercel Pull
+      - name: Pull Vercel env
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build
-        # HUSKY=0 prevents the 'husky not found' error during build
         run: HUSKY=0 vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Deploy to Vercel
+      - name: Deploy to production
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
+  # --------------------------------------------------------------
+  # JOB 3: DEPLOY BACKEND (Railway)
+  # --------------------------------------------------------------
   deploy-backend:
     needs: check-changes
-    # Only run if backend files changed
     if: ${{ needs.check-changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout deployment commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy to Railway
-        # Ensure 'Elevra' matches your Railway service name exactly
+      - name: Deploy backend to Railway
         run: railway up --service Elevra --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
