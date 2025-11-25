@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   # --------------------------------------------------------------
-  # JOB 1: CHANGE DETECTION (correct, stable, production-ready)
+  # JOB 1: CHANGE DETECTION (stable + correct)
   # --------------------------------------------------------------
   check-changes:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -21,25 +21,35 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
 
     steps:
-      - name: Checkout (detached CI-tested SHA)
+      # 1️⃣ Checkout the commit CI tested
+      - name: Checkout CI commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-          fetch-depth: 0
+          fetch-depth: 0    # full history so git diff works
 
-      - name: Fetch remote main (fixes origin/main missing issue)
+      # 2️⃣ Ensure remote is correct
+      - name: Fix remote URL
         run: |
           git remote set-url origin https://github.com/${{ github.repository }}.git
-          # Fetch the real main branch ref so paths-filter can compare
+
+      # 3️⃣ Fetch ALL remote branches (required for workflow_run)
+      - name: Fetch all branch refs
+        run: |
+          git fetch origin --prune --no-tags --depth=1000
+
+      # 4️⃣ Explicitly fetch origin/main so it exists locally
+      - name: Ensure origin/main exists
+        run: |
           git fetch origin +refs/heads/main:refs/remotes/origin/main
 
+      # 5️⃣ Run the change detector
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
-          # Correct comparison: production baseline vs CI commit
-          base: origin/main
-          ref: ${{ github.event.workflow_run.head_sha }}
+          base: origin/main                 # production baseline
+          ref: ${{ github.event.workflow_run.head_sha }}   # CI commit
           filters: |
             frontend:
               - "apps/frontend/**"
@@ -58,14 +68,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout deployment commit
+      - name: Checkout CI commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install -g vercel@latest
 
       - name: Pull Vercel env
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
@@ -73,13 +83,13 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Build
+      - name: Build frontend
         run: HUSKY=0 vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - name: Deploy to production
+      - name: Deploy frontend
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -94,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout deployment commit
+      - name: Checkout CI commit
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
@@ -103,7 +113,7 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
-      - name: Deploy backend to Railway
+      - name: Deploy backend
         run: railway up --service Elevra --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
