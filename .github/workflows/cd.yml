@@ -48,7 +48,6 @@ jobs:
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
-        # Replace 'elevra-backend' with your actual service name in Railway
-        run: railway up --service elevra-backend --detach
+        run: railway up --service Elevra --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
