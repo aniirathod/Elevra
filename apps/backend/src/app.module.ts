@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { HealthController } from './health.controller';
+import { HealthController } from './health/health.controller';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { AppService } from './app.service';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    PrismaModule,
   ],
   controllers: [HealthController, AppController],
   providers: [AppService],
