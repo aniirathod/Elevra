@@ -5,7 +5,7 @@ services:
       dockerfile: ./apps/backend/Dockerfile
     container_name: elevra-backend-prod-test
     environment:
-      DATABASE_URL: "postgresql://neondb_owner:npg_uplF0hf3JMLX@ep-polished-night-a4ff4kn1-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+      DATABASE_URL: "neon postgres url here"
       PORT: 4000
       NODE_ENV: production
     ports:
