@@ -30,7 +30,7 @@ export class HealthController {
     } catch (err) {
       return {
         status: 'error',
-        message: `Database connection failed ${err}`,
+        message: `Database connection fail ${err}`,
         timestamp: new Date().toISOString(),
         service: 'elevra-backend',
         uptime: process.uptime(),
