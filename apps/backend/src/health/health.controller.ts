@@ -8,6 +8,7 @@ interface HealthResponse {
   uptime: number;
   environment: string;
   db?: string;
+  message?: string;
 }
 
 @Controller('health')
@@ -29,6 +30,7 @@ export class HealthController {
     } catch (err) {
       return {
         status: 'error',
+        message: `Database connection failed ${err}`,
         timestamp: new Date().toISOString(),
         service: 'elevra-backend',
         uptime: process.uptime(),

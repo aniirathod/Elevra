@@ -50,3 +50,5 @@ package-lock.json
 # Vercel + Railway config
 # ----------------------------
 .vercel/
+
+apps/backend/src/generated
