@@ -28,17 +28,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed files
+      - name: Get changed files between commits
         id: changes
         run: |
-          # Fetch the specific commit that was tested in CI
-          git fetch origin ${{ github.event.workflow_run.head_sha }}
+          # The commit that was tested in CI
+          TESTED_COMMIT="${{ github.event.workflow_run.head_sha }}"
           
-          # Compare against the previous commit to detect changes
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          # Get the parent commit (before this push)
+          PARENT_COMMIT=$(git rev-parse ${TESTED_COMMIT}^)
+          
+          echo "Comparing changes between:"
+          echo "  Parent: ${PARENT_COMMIT}"
+          echo "  Tested: ${TESTED_COMMIT}"
+          echo ""
+          
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only ${PARENT_COMMIT} ${TESTED_COMMIT})
           
           echo "Changed files:"
           echo "$CHANGED_FILES"
+          echo ""
           
           # Check if frontend changed
           if echo "$CHANGED_FILES" | grep -qE '^(apps/frontend/|apps/web/|packages/)'; then
