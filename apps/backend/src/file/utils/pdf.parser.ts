@@ -2,12 +2,21 @@ import { Injectable } from '@nestjs/common';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import path from 'path';
 
+interface PdfTextItem {
+  str: string;
+  dir: string;
+  width: number;
+  height: number;
+  transform: number[];
+  fontName: string;
+  hasEOL: boolean;
+}
+
 const workerPath = path.resolve(
   __dirname,
   '../../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'
 );
 
-// Set the worker source globally
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
 
 @Injectable()
@@ -17,7 +26,6 @@ export class PdfParser {
     const uint8 = new Uint8Array(buffer);
 
     // 2. Load PDF with specific Node.js options
-    // 'disableFontFace' prevents the library from trying to load fonts (which needs Canvas/DOM)
     const loadingTask = pdfjsLib.getDocument({
       data: uint8,
       disableFontFace: true,
@@ -31,13 +39,16 @@ export class PdfParser {
       const page = await doc.getPage(pageNo);
       const content = await page.getTextContent();
 
-      // 3. VISUAL SORTING (Crucial for Resumes)
-      // PDF text is often stored out of order. We must sort by Y (vertical) then X (horizontal).
-      const sortedItems = content.items.sort((a: any, b: any) => {
-        // transform[5] is Y position. PDF Y=0 is the bottom, so we sort Descending (Top -> Bottom)
+      const items = content.items.filter((item): item is PdfTextItem => {
+        return 'str' in item && 'transform' in item;
+      });
+
+      // 3. VISUAL SORTING
+      // Now 'a' and 'b' are strictly inferred as PdfTextItem (no 'any' needed)
+      items.sort((a, b) => {
+        // transform[5] is Y position. Sort Descending (Top -> Bottom)
         const yDiff = b.transform[5] - a.transform[5];
 
-        // If items are on roughly the same line (within 5 units), sort by X (Left -> Right)
         if (Math.abs(yDiff) < 5) {
           return a.transform[4] - b.transform[4];
         }
@@ -48,7 +59,8 @@ export class PdfParser {
       let lastY = -1;
       let pageText = '';
 
-      for (const item of sortedItems as any[]) {
+      // Loop over the strictly typed 'items' array
+      for (const item of items) {
         const currentY = item.transform[5];
 
         // If this is the first item, just add it
