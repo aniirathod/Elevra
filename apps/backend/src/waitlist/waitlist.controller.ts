@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import { WaitlistService } from './waitlist.service';
 import { WaitlistDto } from './dto/waitlist.dto';
 
