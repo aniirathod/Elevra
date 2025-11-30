@@ -29,7 +29,7 @@ services:
   #     dockerfile: apps/backend/Dockerfile.dev
   #   container_name: elevra_backend_dev
   #   ports:
-  #     - "3000:3000"
+  #     - "4000:4000"
   #     - "9229:9229" # Debugger port
   #   environment:
   #     NODE_ENV: development
@@ -38,7 +38,6 @@ services:
   #     # Sync source code
   #     - .:/app
   #     - /app/node_modules
-  #     - /app/apps/backend/node_modules
   #   command: >
   #     sh -c "npx prisma generate --schema=apps/backend/prisma/schema.prisma && npx turbo run dev --filter=@elevra/backend"
   #   depends_on:
