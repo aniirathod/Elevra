@@ -25,15 +25,20 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@cerebras/cerebras_cloud_sdk": "^1.59.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "^7.0.1",
     "@prisma/client": "^7.0.1",
+    "@types/pdfjs-dist": "^2.10.377",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.2",
     "dotenv": "^16.6.1",
+    "multer": "^2.0.2",
+    "pdfjs-dist": "^5.4.296",
+    "rate-limiter-flexible": "^9.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -45,6 +50,7 @@
     "@nestjs/testing": "^11.0.1",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
+    "@types/multer": "^2.0.0",
     "@types/node": "^22.19.1",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",

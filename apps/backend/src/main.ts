@@ -1,9 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
+  // Create a logger instance for startup messages
+  const logger = new Logger('Bootstrap');
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
   });
@@ -23,7 +26,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Security headers
+  // Security headers (Manual middleware)
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
@@ -34,8 +37,11 @@ async function bootstrap() {
   const port = process.env.PORT || 4000;
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
+  logger.log(`🚀 Backend running on http://localhost:${port}`);
+  logger.log(`📊 Health check: http://localhost:${port}/health`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Fatal Error during startup:', err);
+  process.exit(1);
+});
